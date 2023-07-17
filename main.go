@@ -21,7 +21,6 @@ type Query struct {
 	Original          string `json:"original"`
 	ShowStrictWarning bool   `json:"show_strict_warning"`
 	IsNavigational    bool   `json:"is_navigational"`
-	// Add other fields as needed
 }
 
 type Mixed struct {
@@ -30,15 +29,12 @@ type Mixed struct {
 		Type  string `json:"type"`
 		Index int    `json:"index"`
 		All   bool   `json:"all"`
-		// Add other fields as needed
 	} `json:"main"`
-	// Add other fields as needed
 }
 
 type Web struct {
 	Type    string         `json:"type"`
 	Results []SearchResult `json:"results"`
-	// Add other fields as needed
 }
 
 type SearchResult struct {
@@ -53,7 +49,6 @@ type SearchResult struct {
 	Subtype        string  `json:"subtype"`
 	MetaURL        MetaURL `json:"meta_url"`
 	Age            string  `json:"age"`
-	// Add other fields as needed
 }
 
 type MetaURL struct {
@@ -62,7 +57,6 @@ type MetaURL struct {
 	Hostname string `json:"hostname"`
 	Favicon  string `json:"favicon"`
 	Path     string `json:"path"`
-	// Add other fields as needed
 }
 
 func main() {
@@ -78,7 +72,7 @@ func main() {
 	}
 
 	searchQuery := strings.Join(os.Args[1:], " ")
-	url := fmt.Sprintf("https://api.search.brave.com/res/v1/web/search?q=site:%s", searchQuery)
+	url := fmt.Sprintf("https://api.search.brave.com/res/v1/web/search?q=site:%s&count=%d", searchQuery, 20)
 
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
@@ -108,7 +102,6 @@ func main() {
 		return
 	}
 
-	// Unmarshal the JSON response into the Response struct
 	var searchResponse Response
 	err = json.Unmarshal(body, &searchResponse)
 	if err != nil {
