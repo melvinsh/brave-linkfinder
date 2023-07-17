@@ -6,7 +6,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
+	"time"
 )
 
 // Define the Go structs to match the JSON response
@@ -71,14 +73,46 @@ func main() {
 		return
 	}
 
+	var results []SearchResult
+
+	for i := 0; i < 9; i++ {
+		// todo: error handling
+		searchResponse, _ := request(braveAPIKey, 0)
+
+		if len(searchResponse.Web.Results) == 0 {
+			break
+		}
+
+		results = append(results, searchResponse.Web.Results...)
+
+		// todo: make variable based on actual key limit
+		time.Sleep(time.Second)
+	}
+
+	var urls []string
+
+	for _, result := range results {
+		urls = append(urls, result.URL)
+	}
+
+	urls = removeDuplicatesAndSort(urls)
+
+	for _, url := range urls {
+		fmt.Println(url)
+	}
+}
+
+func request(braveAPIKey string, offset int) (Response, error) {
 	searchQuery := strings.Join(os.Args[1:], " ")
-	url := fmt.Sprintf("https://api.search.brave.com/res/v1/web/search?q=site:%s&count=%d", searchQuery, 20)
+	// offset of 9 and count of 20 are the current documented maximums
+	// https://api.search.brave.com/app/documentation/query
+	url := fmt.Sprintf("https://api.search.brave.com/res/v1/web/search?q=site:%s&count=%d&offset=%d", searchQuery, 20, offset)
 
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		fmt.Println("Error creating request:", err)
-		return
+		return Response{}, err
 	}
 
 	req.Header.Add("Accept", "application/json")
@@ -87,29 +121,42 @@ func main() {
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Println("Error sending request:", err)
-		return
+		return Response{}, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		fmt.Printf("Request failed with status code: %d\n", resp.StatusCode)
-		return
+		return Response{}, err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("Error reading response body:", err)
-		return
+		return Response{}, err
 	}
 
 	var searchResponse Response
 	err = json.Unmarshal(body, &searchResponse)
 	if err != nil {
 		fmt.Println("Error unmarshalling response:", err)
-		return
+		return Response{}, err
+	}
+	return searchResponse, nil
+}
+
+func removeDuplicatesAndSort(arr []string) []string {
+	seen := make(map[string]bool)
+	uniqueStrings := []string{}
+
+	for _, str := range arr {
+		if !seen[str] {
+			seen[str] = true
+			uniqueStrings = append(uniqueStrings, str)
+		}
 	}
 
-	for _, result := range searchResponse.Web.Results {
-		fmt.Println(result.URL)
-	}
+	sort.Strings(uniqueStrings)
+
+	return uniqueStrings
 }
